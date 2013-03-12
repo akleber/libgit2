@@ -295,7 +295,21 @@ int p_getcwd(char *buffer_out, size_t size)
 
 int p_stat(const char* path, struct stat* buf)
 {
-	return do_lstat(path, buf, 0);
+    wchar_t fbuf[GIT_WIN_PATH], lastch;
+    int flen;
+
+    flen = git__utf8_to_16(fbuf, GIT_WIN_PATH, path);
+
+    /* truncate trailing slashes */
+    for (; flen > 0; --flen) {
+        lastch = fbuf[flen - 1];
+        if (WIN32_IS_WSEP(lastch))
+            fbuf[flen - 1] = L'\0';
+        else if (lastch != L'\0')
+            break;
+    }
+
+    return _wstat64(fbuf, buf);
 }
 
 int p_chdir(const char* path)
